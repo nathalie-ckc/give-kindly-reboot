@@ -42,5 +42,5 @@ contract Charity {
     gks.assignAssessor(_itemID, msg.sender, _assessor);
   }
 
-  // TODO: Add function to query the donations for the calling donor
+  // TODO: Add function to query the donations for the calling charity
 }
