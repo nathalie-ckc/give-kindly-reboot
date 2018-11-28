@@ -40,6 +40,7 @@ contract GiveKindlySystem {
     uint32 assessedValue;
     uint8 itemState;
     uint8 itemType;
+    string description;
   }
 
   struct GKActor {
@@ -64,9 +65,9 @@ contract GiveKindlySystem {
     participantList[_participantAcct] = GKActor(_participantAcct, _role, _name, _email, _physAddr);
   }
 
-  function logDonation(address _donor, address _charity, uint8 _itemType) public returns (uint32) {
+  function logDonation(address _donor, address _charity, uint8 _itemType, string _descr) public returns (uint32) {
     uint32 retval = donationID;
-    donationItemList.push(DonationItem(_donor, _charity, 0, 0, 0, uint8(ItemState.AssignedToCharity), _itemType));
+    donationItemList.push(DonationItem(_donor, _charity, 0, 0, 0, uint8(ItemState.AssignedToCharity), _itemType, _descr));
     donors2Items[_donor].push(donationID);
     charities2Items[_charity].push(donationID);
     donationID++;
