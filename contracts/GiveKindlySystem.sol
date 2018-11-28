@@ -71,7 +71,7 @@ contract GiveKindlySystem {
     donors2Items[_donor].push(donationID);
     charities2Items[_charity].push(donationID);
     donationID++;
-    // TODO: emit event to notify the charity
+    // TODO: emit event to notify the charity and tell it the itemID
     return retval;
   }
 
