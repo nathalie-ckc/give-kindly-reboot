@@ -35,7 +35,7 @@ contract Charity {
 
   // TODO: In future, a charity might have multiple staff working for it
   function registerCharity(string _name, string _email, string _physAddr) public {
-    gks.registerParticipant(msg.sender, uint8(GiveKindlySystem.ActorRole.Charity), _name, _email, _physAddr);
+    gks.registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Charity), _name, _email, _physAddr);
   }
 
   function assignAssessor(uint32 _itemID, address _assessor) public {

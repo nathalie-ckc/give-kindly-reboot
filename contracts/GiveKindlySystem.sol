@@ -64,17 +64,17 @@ contract GiveKindlySystem {
   mapping (address => uint32[]) public assessors2Items;
 
   // All the registered actors
-  mapping (address => GKActor) public participantList;
+  mapping (address => GKActor) public actorList;
 
-  function registerParticipant(address _participantAcct, uint8 _role, string _name, string _email, string _physAddr) public {
-    require(_participantAcct != 0x0);
+  function registerActor(address _actorAcct, uint8 _role, string _name, string _email, string _physAddr) public {
+    require(_actorAcct != 0x0);
     require(_role < numActorRoles);
-    participantList[_participantAcct] = GKActor(_participantAcct, _role, true, _name, _email, _physAddr);
+    actorList[_actorAcct] = GKActor(_actorAcct, _role, true, _name, _email, _physAddr);
   }
 
   function logDonation(address _donor, address _charity, uint8 _itemType, string _descr) public returns (uint32) {
-    require(participantList[_donor].isRegistered);
-    require(participantList[_charity].isRegistered);
+    require(actorList[_donor].isRegistered);
+    require(actorList[_charity].isRegistered);
     require(_itemType < numItemTypes);
     uint32 retval = donationID;
     donationItemList.push(DonationItem(_donor, _charity, 0, 0, 0, uint8(ItemState.AssignedToCharity), _itemType, _descr));
@@ -91,9 +91,9 @@ contract GiveKindlySystem {
 
   function assignAssessor(uint32 _itemID, address _charity, address _assessor) public {
     require(_itemID < donationID);
-    require(participantList[_charity].isRegistered);
+    require(actorList[_charity].isRegistered);
     require(donationItemList[_itemID].charity == _charity);
-    require(participantList[_assessor].isRegistered);
+    require(actorList[_assessor].isRegistered);
     donationItemList[_itemID].assessor = _assessor;
     donationItemList[_itemID].itemState = uint8(ItemState.AssignedToAssessor);
     assessors2Items[_assessor].push(_itemID);
@@ -101,7 +101,7 @@ contract GiveKindlySystem {
 
   function itemUpForAuction(uint32 _itemID, address _assessor) public {
     require(_itemID < donationID);
-    require(participantList[_assessor].isRegistered);
+    require(actorList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.ListedForAuction);
   }
@@ -110,7 +110,7 @@ contract GiveKindlySystem {
   // Buyer would be registered with the Auctioneer
   function logCompletedAuction(uint32 _itemID, address _assessor, address _buyer, uint32 _value) public {
     require(_itemID < donationID);
-    require(participantList[_assessor].isRegistered);
+    require(actorList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.Sold);
     donationItemList[_itemID].assessedValue = _value;

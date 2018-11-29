@@ -38,7 +38,7 @@ contract Auctioneer {
   // TODO: In future, an auction house might have multiple staff working for it
   // TODO: Approved auction houses should be whitelisted, so not anyone can auction
   function registerAuctioneer(string _name, string _email, string _physAddr) public {
-    gks.registerParticipant(msg.sender, uint8(GiveKindlySystem.ActorRole.Auctioneer), _name, _email, _physAddr);
+    gks.registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Auctioneer), _name, _email, _physAddr);
   }
 
   function auctionItem(uint32 _itemID) public {

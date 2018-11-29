@@ -36,7 +36,7 @@ contract CRA {
   // TODO: In future, CRA might have multiple staff working for it
   // TODO: For security, want to limit who can register as CRA. Need whitelist.
   function registerCRA(string _name, string _email, string _physAddr) public {
-    gks.registerParticipant(msg.sender, uint8(GiveKindlySystem.ActorRole.CRA), _name, _email, _physAddr);
+    gks.registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.CRA), _name, _email, _physAddr);
   }
 
   // TODO: Add functions to query anything CRA would be interested in

@@ -35,7 +35,7 @@ contract Donor {
   }
 
   function registerDonor(string _name, string _email, string _physAddr) public {
-    gks.registerParticipant(msg.sender, uint8(GiveKindlySystem.ActorRole.Donor), _name, _email, _physAddr);
+    gks.registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Donor), _name, _email, _physAddr);
   }
 
   function donate(address _charity, uint8 _itemType, string _description) public {
