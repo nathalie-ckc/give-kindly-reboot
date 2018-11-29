@@ -31,7 +31,7 @@ contract Auctioneer {
 
   // TODO: Add auction logic
 
-  function Auctioneer(address _gksaddr) public {
+  constructor (address _gksaddr) public {
     gks = GiveKindlySystem(_gksaddr);
   }
 
@@ -48,6 +48,6 @@ contract Auctioneer {
 
   // TODO: Auction logic needs to call
   // gks.logCompletedAuction(uint32 _itemID, msg.sender, _buyer, _value)
-  
+
   // TODO: Add function to query the donations for the calling auctioneer
 }

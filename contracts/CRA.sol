@@ -29,7 +29,7 @@ import "./GiveKindlySystem.sol";
 contract CRA {
   GiveKindlySystem gks;
 
-  function CRA(address _gksaddr) public {
+  constructor (address _gksaddr) public {
     gks = GiveKindlySystem(_gksaddr);
   }
 

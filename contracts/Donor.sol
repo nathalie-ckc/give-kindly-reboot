@@ -30,7 +30,7 @@ import "./GiveKindlySystem.sol";
 contract Donor {
   GiveKindlySystem gks;
 
-  function Donor(address _gksaddr) public {
+  constructor (address _gksaddr) public {
     gks = GiveKindlySystem(_gksaddr);
   }
 
