@@ -25,13 +25,6 @@ SOFTWARE.
 pragma solidity ^0.4.18;
 
 contract GiveKindlySystem {
-  enum ItemType { Car, Motorcycle, RV, Boat, Jewlry, Artwork }
-
-  enum ItemState { AssignedToCharity, AssignedToAssessor, ListedForAuction, Sold }
-
-  enum ActorRole { Donor, Charity, Auctioneer, CRA }
-
-  // itemID will be index into donation item array
   struct DonationItem {
     address donor;
     address charity;
@@ -46,26 +39,43 @@ contract GiveKindlySystem {
   struct GKActor {
     address ethAccount;
     uint8 role;
+    bool isRegistered;
     string name;
     string email;
     string physicalAddress;
   }
+
+  // HACK: Be sure to update the enum counts below!
+  enum ItemType { Car, Motorcycle, RV, Boat, Jewlry, Artwork }
+  enum ItemState { AssignedToCharity, AssignedToAssessor, ListedForAuction, Sold }
+  enum ActorRole { Donor, Charity, Auctioneer, CRA }
+
+  // HACK for validity checking: Update these if adding to the enums!
+  uint8 numItemTypes = 6;
+  uint8 numItemStates = 4;
+  uint8 numActorRoles = 4;
+
+  uint32 public donationID = 0; // ID is index of next element to add to donationItemList array
+  DonationItem[] public donationItemList;
 
   // Tradeoff: Storage to avoid iterating
   mapping (address => uint32[]) public donors2Items;
   mapping (address => uint32[]) public charities2Items;
   mapping (address => uint32[]) public assessors2Items;
 
-  DonationItem[] public donationItemList;
-  uint32 public donationID = 0; // ID is index in donationItemList array
-
+  // All the registered actors
   mapping (address => GKActor) public participantList;
 
   function registerParticipant(address _participantAcct, uint8 _role, string _name, string _email, string _physAddr) public {
-    participantList[_participantAcct] = GKActor(_participantAcct, _role, _name, _email, _physAddr);
+    require(_participantAcct != 0x0);
+    require(_role < numActorRoles);
+    participantList[_participantAcct] = GKActor(_participantAcct, _role, true, _name, _email, _physAddr);
   }
 
   function logDonation(address _donor, address _charity, uint8 _itemType, string _descr) public returns (uint32) {
+    require(participantList[_donor].isRegistered);
+    require(participantList[_charity].isRegistered);
+    require(_itemType < numItemTypes);
     uint32 retval = donationID;
     donationItemList.push(DonationItem(_donor, _charity, 0, 0, 0, uint8(ItemState.AssignedToCharity), _itemType, _descr));
     donors2Items[_donor].push(donationID);
@@ -80,18 +90,27 @@ contract GiveKindlySystem {
   }
 
   function assignAssessor(uint32 _itemID, address _charity, address _assessor) public {
+    require(_itemID < donationID);
+    require(participantList[_charity].isRegistered);
     require(donationItemList[_itemID].charity == _charity);
+    require(participantList[_assessor].isRegistered);
     donationItemList[_itemID].assessor = _assessor;
     donationItemList[_itemID].itemState = uint8(ItemState.AssignedToAssessor);
     assessors2Items[_assessor].push(_itemID);
   }
 
   function itemUpForAuction(uint32 _itemID, address _assessor) public {
+    require(_itemID < donationID);
+    require(participantList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.ListedForAuction);
   }
 
+  // Buyer doesn't need to be registered with GiveKindlySystem because they aren't relevant to taxes
+  // Buyer would be registered with the Auctioneer
   function logCompletedAuction(uint32 _itemID, address _assessor, address _buyer, uint32 _value) public {
+    require(_itemID < donationID);
+    require(participantList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.Sold);
     donationItemList[_itemID].assessedValue = _value;
