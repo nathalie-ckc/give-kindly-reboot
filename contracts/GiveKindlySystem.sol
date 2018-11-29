@@ -52,14 +52,14 @@ contract GiveKindlySystem {
   }
 
   // Tradeoff: Storage to avoid iterating
-  mapping (address => uint32[]) donors2Items;
-  mapping (address => uint32[]) charities2Items;
-  mapping (address => uint32[]) assessors2Items;
+  mapping (address => uint32[]) public donors2Items;
+  mapping (address => uint32[]) public charities2Items;
+  mapping (address => uint32[]) public assessors2Items;
 
-  DonationItem[] donationItemList;
-  uint32 donationID = 0; // ID is index in donationItemList array
+  DonationItem[] public donationItemList;
+  uint32 public donationID = 0; // ID is index in donationItemList array
 
-  mapping (address => GKActor) participantList;
+  mapping (address => GKActor) public participantList;
 
   function registerParticipant(address _participantAcct, uint8 _role, string _name, string _email, string _physAddr) public {
     participantList[_participantAcct] = GKActor(_participantAcct, _role, _name, _email, _physAddr);
