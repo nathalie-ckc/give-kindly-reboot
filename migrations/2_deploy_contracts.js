@@ -1,6 +1,7 @@
 /* The MIT License (MIT)
 
 Copyright (c) 2018 Truffle
+Copyright (c) 2018 Nathalie C. Chan King Choy
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +23,17 @@ SOFTWARE.
 */
 
 var GiveKindlySystem = artifacts.require("./GiveKindlySystem.sol");
+var Donor = artifacts.require("./Donor.sol");
+var Charity = artifacts.require("./Charity.sol");
+var Auctioneer = artifacts.require("./Auctioneer.sol");
+var CRA = artifacts.require("./CRA.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(GiveKindlySystem);
+  deployer.deploy(GiveKindlySystem).then(function(){
+    return deployer.deploy([[Donor, GiveKindlySystem.address],
+      [Charity, GiveKindlySystem.address],
+      [Auctioneer, GiveKindlySystem.address],
+      [CRA, GiveKindlySystem.address]
+    ]);
+  });
 };
