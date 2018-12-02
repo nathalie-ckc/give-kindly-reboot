@@ -29,7 +29,6 @@ contract GiveKindlySystem {
     address donor;
     address charity;
     address assessor;
-    address itemOwner;
     uint32 assessedValue;
     uint8 itemState;
     uint8 itemType;
@@ -74,6 +73,12 @@ contract GiveKindlySystem {
   // I don't want to restrict myself to testing on just Remix JavaScript VM or Rinkeby
   //==================================================
 
+  function getDonationCount() public view returns (uint32) {
+    return donationID;
+  }
+
+  // TODO: Add getter functions that return the whole array of donors, charities & assessors to items
+
   function registerActor(address _actorAcct, uint8 _role, string _name, string _email, string _physAddr) public {
     require(_actorAcct != 0x0);
     require(_role < numActorRoles);
@@ -86,16 +91,12 @@ contract GiveKindlySystem {
     require(actorList[_charity].isRegistered);
     require(_itemType < numItemTypes);
     uint32 retval = donationID;
-    donationItemList.push(DonationItem(_donor, _charity, 0, 0, 0, uint8(ItemState.AssignedToCharity), _itemType, _descr));
+    donationItemList.push(DonationItem(_donor, _charity, 0, 0, uint8(ItemState.AssignedToCharity), _itemType, _descr));
     donors2Items[_donor].push(donationID);
     charities2Items[_charity].push(donationID);
     donationID++;
     // TODO: emit event to notify the charity and tell it the itemID
     return retval;
-  }
-
-  function getDonationCount() public view returns (uint32) {
-    return donationID;
   }
 
   function assignAssessor(uint32 _itemID, address _charity, address _assessor) public {
@@ -117,13 +118,12 @@ contract GiveKindlySystem {
 
   // Buyer doesn't need to be registered with GiveKindlySystem because they aren't relevant to taxes
   // Buyer would be registered with the Auctioneer
-  function logCompletedAuction(uint32 _itemID, address _assessor, address _buyer, uint32 _value) public {
+  function logCompletedAuction(uint32 _itemID, address _assessor, uint32 _value) public {
     require(_itemID < donationID);
     require(actorList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.Sold);
     donationItemList[_itemID].assessedValue = _value;
-    donationItemList[_itemID].itemOwner = _buyer;
   }
 
 
