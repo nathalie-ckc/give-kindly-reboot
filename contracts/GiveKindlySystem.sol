@@ -55,6 +55,7 @@ contract GiveKindlySystem {
   uint8 numItemStates = 4;
   uint8 numActorRoles = 4;
 
+  uint32 public numActorsRegistered = 0; // For DEBUG
   uint32 public donationID = 0; // ID is index of next element to add to donationItemList array
   DonationItem[] public donationItemList;
 
@@ -77,6 +78,7 @@ contract GiveKindlySystem {
     require(_actorAcct != 0x0);
     require(_role < numActorRoles);
     actorList[_actorAcct] = GKActor(_actorAcct, _role, true, _name, _email, _physAddr);
+    numActorsRegistered++;
   }
 
   function logDonation(address _donor, address _charity, uint8 _itemType, string _descr) public returns (uint32) {
@@ -124,18 +126,74 @@ contract GiveKindlySystem {
     donationItemList[_itemID].itemOwner = _buyer;
   }
 
+
+
   //==================================================
   // These functions go into Donor contract later.
   // Currently in 1 contract because of Ganache issue.
   //==================================================
-  function registerDonor(string _name, string _email, string _physAddr) public {
+  function donor_registerDonor(string _name, string _email, string _physAddr) public {
     registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Donor), _name, _email, _physAddr);
   }
 
-  function donate(address _charity, uint8 _itemType, string _description) public {
+  function donor_donate(address _charity, uint8 _itemType, string _description) public {
     // Currently we don't do anything with the return value
     logDonation(msg.sender, _charity, _itemType, _description);
   }
 
   // TODO: Add function to query the donations for the calling donor
+
+
+
+  //==================================================
+  // These functions go into Charity contract later.
+  // Currently in 1 contract because of Ganache issue.
+  //==================================================
+
+  // TODO: In future, a charity might have multiple staff working for it
+  function charity_registerCharity(string _name, string _email, string _physAddr) public {
+    registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Charity), _name, _email, _physAddr);
+  }
+
+  function charity_assignAssessor(uint32 _itemID, address _assessor) public {
+    assignAssessor(_itemID, msg.sender, _assessor);
+  }
+
+  // TODO: Add function to query the donations for the calling charity
+
+
+  //==================================================
+  // These functions go into CRA contract later.
+  // Currently in 1 contract because of Ganache issue.
+  //==================================================
+
+  // TODO: In future, CRA might have multiple staff working for it
+  // TODO: For security, want to limit who can register as CRA. Need whitelist.
+  function cra_registerCRA(string _name, string _email, string _physAddr) public {
+    registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.CRA), _name, _email, _physAddr);
+  }
+
+  // TODO: Add functions to query anything CRA would be interested in
+
+
+    //==================================================
+    // These functions go into Auctioneer contract later.
+    // Currently in 1 contract because of Ganache issue.
+    //==================================================
+
+    // TODO: In future, an auction house might have multiple staff working for it
+    // TODO: Approved auction houses should be whitelisted, so not anyone can auction
+    function auctioneer_registerAuctioneer(string _name, string _email, string _physAddr) public {
+      registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Auctioneer), _name, _email, _physAddr);
+    }
+
+    function auctioneer_auctionItem(uint32 _itemID) public {
+      // TODO: Add auction logic. Deploy an auction contract for each item? Factory pattern?
+      itemUpForAuction(_itemID, msg.sender);
+    }
+
+    // TODO: Auction logic needs to call
+    // gks.logCompletedAuction(uint32 _itemID, msg.sender, _buyer, _value)
+
+    // TODO: Add function to query the donations for the calling auctioneer
 }
