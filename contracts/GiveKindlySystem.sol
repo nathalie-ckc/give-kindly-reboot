@@ -66,6 +66,13 @@ contract GiveKindlySystem {
   // All the registered actors
   mapping (address => GKActor) public actorList;
 
+  //==================================================
+  // Don't make these functions internal because the intent is to have the role functions
+  // live in separate contracts for each role. But I have merged all into 1 contract because
+  // of the issue with Ganache having VM error when I call a function in another contract &
+  // I don't want to restrict myself to testing on just Remix JavaScript VM or Rinkeby
+  //==================================================
+
   function registerActor(address _actorAcct, uint8 _role, string _name, string _email, string _physAddr) public {
     require(_actorAcct != 0x0);
     require(_role < numActorRoles);
@@ -116,4 +123,19 @@ contract GiveKindlySystem {
     donationItemList[_itemID].assessedValue = _value;
     donationItemList[_itemID].itemOwner = _buyer;
   }
+
+  //==================================================
+  // These functions go into Donor contract later.
+  // Currently in 1 contract because of Ganache issue.
+  //==================================================
+  function registerDonor(string _name, string _email, string _physAddr) public {
+    registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Donor), _name, _email, _physAddr);
+  }
+
+  function donate(address _charity, uint8 _itemType, string _description) public {
+    // Currently we don't do anything with the return value
+    logDonation(msg.sender, _charity, _itemType, _description);
+  }
+
+  // TODO: Add function to query the donations for the calling donor
 }
