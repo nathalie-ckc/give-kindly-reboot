@@ -99,7 +99,7 @@ contract GiveKindlySystem {
   // Constructor
   //==================================================
 
-  function GiveKindlySystem() public {
+  constructor() public {
     gksAdmin = msg.sender;
   }
 
@@ -114,7 +114,7 @@ contract GiveKindlySystem {
     return donationID;
   }
 
-  function getCharityForItem(uint32 _itemID) public returns (address) {
+  function getCharityForItem(uint32 _itemID) public view  returns (address) {
     return donationItemList[_itemID].charity;
   }
   // TODO: Add getter functions that return the whole array of donors, charities & assessors to items
@@ -157,8 +157,8 @@ contract GiveKindlySystem {
     return true;
   }
 
-  // Buyer doesn't need to be registered with GiveKindlySystem because they aren't relevant to taxes
-  // Buyer would be registered with the Auctioneer
+  // Bidder doesn't need to be registered with GiveKindlySystem because they aren't relevant to taxes
+  // TODO: Bidder would be registered with the Auctioneer
   function logCompletedAuction(uint32 _itemID, address _assessor, uint32 _value) public {
     require(_itemID < donationID);
     require(actorList[_assessor].isRegistered);
@@ -228,9 +228,10 @@ contract GiveKindlySystem {
       registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Auctioneer), _name, _email, _physAddr);
     }
 
-    // HACK: Since ganache doesn't let me call functions in other contracts, only have 1 item up for auction at a time
+    // HACK: Since ganache doesn't let me call functions in other contracts,
+    // only have 1 item up for auction at a time
+    // TODO: Deploy an auction contract for each item? Factory pattern?
     function auctioneer_auctionItem(uint32 _itemID) public {
-      // TODO: Add auction logic. Deploy an auction contract for each item? Factory pattern?
       require(itemUpForAuction(_itemID, msg.sender));
       itemBeingAuctioned = _itemID;
       auctionActive = true;
@@ -241,7 +242,7 @@ contract GiveKindlySystem {
       // TODO: Put checks on auctioneer before de-activating the auction
       auctionActive = false;
       logCompletedAuction(itemBeingAuctioned, msg.sender, uint32(highestBid));
-      charityFunds(getCharityForItem(itemBeingAuctioned)) = uint32(highestBid);
+      charityFunds[getCharityForItem(itemBeingAuctioned)] = uint32(highestBid);
       // TODO: Emit event to notify charity that their item was sold
       // emit AuctionEnded(highestBidder, highestBid);
     }
@@ -250,7 +251,7 @@ contract GiveKindlySystem {
       require (auctionActive);
       require (uint32(msg.value) > highestBid);
       if (highestBid != 0) {
-        pendingReturns[highestBidder] = highestBid;
+        pendingReturns[highestBidder] = uint32(highestBid);
         highestBidder = msg.sender;
         highestBid = uint32(msg.value);
         // TODO: Emit event that bid was accepted
@@ -259,17 +260,29 @@ contract GiveKindlySystem {
 
     /// Withdraw a bid that was overbid.
     function auctioneer_returnLosingBid() public returns (bool) {
-        uint amount = uint(pendingReturns[msg.sender]);
-        if (amount > 0) {
-            pendingReturns[msg.sender] = 0;
+      uint amount = uint(pendingReturns[msg.sender]);
+      if (amount > 0) {
+        pendingReturns[msg.sender] = 0;
 
-            if (!msg.sender.send(amount)) {
-                // No need to call throw here, just reset the amount owing
-                pendingReturns[msg.sender] = uint32(amount);
-                return false;
-            }
+        if (!msg.sender.send(amount)) {
+          pendingReturns[msg.sender] = uint32(amount);
+          return false;
         }
-        return true;
+      }
+      return true;
+    }
+
+    function auctioneer_charityWithdraw() public returns(bool){
+      uint amount = uint(charityFunds[msg.sender]);
+      if (amount > 0) {
+        charityFunds[msg.sender] = 0;
+
+        if (!msg.sender.send(amount)) {
+          charityFunds[msg.sender] = uint32(amount);
+          return false;
+        }
+      }
+      return true;
     }
 
 
