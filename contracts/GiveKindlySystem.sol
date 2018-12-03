@@ -117,6 +117,10 @@ contract GiveKindlySystem {
   function getCharityForItem(uint32 _itemID) public view  returns (address) {
     return donationItemList[_itemID].charity;
   }
+
+  function getValueForItem(uint32 _itemID) public view returns (uint32) {
+    return donationItemList[_itemID].assessedValue;
+  }
   // TODO: Add getter functions that return the whole array of donors, charities & assessors to items
 
   function registerActor(address _actorAcct, uint8 _role, string _name, string _email, string _physAddr) public {
@@ -232,7 +236,7 @@ contract GiveKindlySystem {
     // only have 1 item up for auction at a time
     // TODO: Deploy an auction contract for each item? Factory pattern?
     function auctioneer_auctionItem(uint32 _itemID) public {
-      require(itemUpForAuction(_itemID, msg.sender));
+      itemUpForAuction(_itemID, msg.sender);
       itemBeingAuctioned = _itemID;
       auctionActive = true;
       // TODO: Emit event about the item being auctioned

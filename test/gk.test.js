@@ -6,8 +6,11 @@ contract('GiveKindlySystem', function(accounts) {
   const alice = accounts[1];
   const bigsisters = accounts[2];
   const canauction = accounts[3];
+  const bidder1 = accounts[4];
+  const bidder2 = accounts[5];
+  const bidder3 = accounts[6];
 
-  it("donate 2 items and assign them to auctioneer", async () => {
+  it("donate 2 items, assign them to auctioneer, auction & charity takes $", async () => {
     const gks = await GiveKindlySystem.deployed();
 
     await gks.donor_registerDonor("Alice", "a@gmail", "111 Main", {from: alice});
@@ -32,6 +35,25 @@ contract('GiveKindlySystem', function(accounts) {
     const donID = await gks.assessors2Items(canauction, 1).then(result => result.toNumber());
     assert.equal(donID, 1, "Auctioneer assignment unsuccessful");
 
+    await gks.auctioneer_auctionItem(1, {from: canauction});
+    const aucItem = gks.itemBeingAuctioned().then(result => result.toNumber());
+    assert.equal(aucItem, 1, "Item 1 was NOT successfully put up for auction");
+
+    await gks.auctioneer_newBid({from:bidder1, value:10000000});
+    const hb1 = gks.highestBid().then(result => result.toNumber());
+    assert.equal(hb1, 10000000, "Bid1 failed");
+
+    await gks.auctioneer_newBid({from:bidder2, value:50000000});
+    const hb2 = gks.highestBid().then(result => result.toNumber());
+    assert.equal(hb2, 50000000, "Bid2 failed");
+
+    await gks.auctioneer_newBid({from:bidder3, value:30000000});
+    const hb3 = gks.highestBid().then(result => result.toNumber());
+    assert.equal(hb3, 50000000, "Bid3 should not have won");
+
+    await gks.auctioneer_endAuction({from: canauction});
+    const val = gks.getValueForItem(1).then(result => result.toNumber());
+    assert.equal(val, 50000000, "Item 1 was NOT successfully sold in auction");
   });
   /*
 
