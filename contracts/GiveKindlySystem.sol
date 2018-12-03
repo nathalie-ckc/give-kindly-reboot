@@ -66,6 +66,43 @@ contract GiveKindlySystem {
   // All the registered actors
   mapping (address => GKActor) public actorList;
 
+  address public gksAdmin;
+
+  //==================================================
+  // State variables for auction
+  // These would go into Auctioneer contract when split into multuiple contracts
+  //==================================================
+  uint32 public itemBeingAuctioned;
+  address public highestBidder;
+  uint public highestBid;
+
+  // Bidders who lost can withdraw their bid
+  mapping(address => uint32) public pendingReturns;
+
+  // Charities can withdraw proceeds of auctioned donations
+  mapping(address => uint32) public charityFunds;
+
+  // Set to true at the start of the auction and false at the end
+  bool public auctionActive;
+
+
+  //==================================================
+  // Modifiers
+  //==================================================
+
+  modifier onlyAdmin {
+    require(msg.sender == gksAdmin);
+    _;
+  }
+
+  //==================================================
+  // Constructor
+  //==================================================
+
+  function GiveKindlySystem() public {
+    gksAdmin = msg.sender;
+  }
+
   //==================================================
   // Don't make these functions internal because the intent is to have the role functions
   // live in separate contracts for each role. But I have merged all into 1 contract because
@@ -77,6 +114,9 @@ contract GiveKindlySystem {
     return donationID;
   }
 
+  function getCharityForItem(uint32 _itemID) public returns (address) {
+    return donationItemList[_itemID].charity;
+  }
   // TODO: Add getter functions that return the whole array of donors, charities & assessors to items
 
   function registerActor(address _actorAcct, uint8 _role, string _name, string _email, string _physAddr) public {
@@ -109,11 +149,12 @@ contract GiveKindlySystem {
     assessors2Items[_assessor].push(_itemID);
   }
 
-  function itemUpForAuction(uint32 _itemID, address _assessor) public {
+  function itemUpForAuction(uint32 _itemID, address _assessor) public returns (bool){
     require(_itemID < donationID);
     require(actorList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.ListedForAuction);
+    return true;
   }
 
   // Buyer doesn't need to be registered with GiveKindlySystem because they aren't relevant to taxes
@@ -187,13 +228,50 @@ contract GiveKindlySystem {
       registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.Auctioneer), _name, _email, _physAddr);
     }
 
+    // HACK: Since ganache doesn't let me call functions in other contracts, only have 1 item up for auction at a time
     function auctioneer_auctionItem(uint32 _itemID) public {
       // TODO: Add auction logic. Deploy an auction contract for each item? Factory pattern?
-      itemUpForAuction(_itemID, msg.sender);
+      require(itemUpForAuction(_itemID, msg.sender));
+      itemBeingAuctioned = _itemID;
+      auctionActive = true;
+      // TODO: Emit event about the item being auctioned
     }
 
-    // TODO: Auction logic needs to call
-    // gks.logCompletedAuction(uint32 _itemID, msg.sender, _buyer, _value)
+    function auctioneer_endAuction() public {
+      // TODO: Put checks on auctioneer before de-activating the auction
+      auctionActive = false;
+      logCompletedAuction(itemBeingAuctioned, msg.sender, uint32(highestBid));
+      charityFunds(getCharityForItem(itemBeingAuctioned)) = uint32(highestBid);
+      // TODO: Emit event to notify charity that their item was sold
+      // emit AuctionEnded(highestBidder, highestBid);
+    }
+
+    function auctioneer_newBid() public payable {
+      require (auctionActive);
+      require (uint32(msg.value) > highestBid);
+      if (highestBid != 0) {
+        pendingReturns[highestBidder] = highestBid;
+        highestBidder = msg.sender;
+        highestBid = uint32(msg.value);
+        // TODO: Emit event that bid was accepted
+      }
+    }
+
+    /// Withdraw a bid that was overbid.
+    function auctioneer_returnLosingBid() public returns (bool) {
+        uint amount = uint(pendingReturns[msg.sender]);
+        if (amount > 0) {
+            pendingReturns[msg.sender] = 0;
+
+            if (!msg.sender.send(amount)) {
+                // No need to call throw here, just reset the amount owing
+                pendingReturns[msg.sender] = uint32(amount);
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     // TODO: Add function to query the donations for the calling auctioneer
 }
