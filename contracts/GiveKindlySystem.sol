@@ -251,15 +251,18 @@ contract GiveKindlySystem {
       // emit AuctionEnded(highestBidder, highestBid);
     }
 
-    function auctioneer_newBid() public payable {
+    function auctioneer_newBid() public payable returns (bool){
       require (auctionActive);
-      require (uint32(msg.value) > highestBid);
+      if (uint32(msg.value) <= highestBid) {
+        return false;
+      }
       if (highestBid != 0) {
         pendingReturns[highestBidder] = uint32(highestBid);
-        highestBidder = msg.sender;
-        highestBid = uint32(msg.value);
-        // TODO: Emit event that bid was accepted
       }
+      highestBidder = msg.sender;
+      highestBid = uint32(msg.value);
+      // TODO: Emit event that bid was accepted
+      return true;
     }
 
     /// Withdraw a bid that was overbid.
