@@ -272,7 +272,7 @@ contract GiveKindlySystem {
       address charity = getCharityForItem(itemBeingAuctioned);
       auctionActive = false;
       if(auctionCompleted(itemBeingAuctioned, msg.sender, highestBid)) {
-        charityFunds[charity] = highestBid;
+        charityFunds[charity] += highestBid;
         emit AuctionEnded(itemBeingAuctioned, charity, highestBidder, highestBid);
       } else {  // checks failed on GKS side, so it wasn't OK to end the auction
         auctionActive = true;
@@ -285,7 +285,7 @@ contract GiveKindlySystem {
         return false;
       }
       if (highestBid != 0) {
-        pendingReturns[highestBidder] = highestBid;
+        pendingReturns[highestBidder] += highestBid;
       }
       highestBidder = msg.sender;
       highestBid = uint32(msg.value);
