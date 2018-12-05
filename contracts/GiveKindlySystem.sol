@@ -54,19 +54,19 @@ contract GiveKindlySystem {
   uint8 numItemStates = 4;
   uint8 numActorRoles = 4;
 
-  uint32 public numActorsRegistered = 0; // For DEBUG
-  uint32 public donationID = 0; // ID is index of next element to add to donationItemList array
-  DonationItem[] public donationItemList;
+  uint32 public numActorsRegistered = 0; // For TESTING
+  uint32 donationID = 0; // ID is index of next element to add to donationItemList array
+  DonationItem[] donationItemList;
 
   // Tradeoff: Storage to avoid iterating
-  mapping (address => uint32[]) public donors2Items;
-  mapping (address => uint32[]) public charities2Items;
-  mapping (address => uint32[]) public assessors2Items;
+  mapping (address => uint32[]) donors2Items;
+  mapping (address => uint32[]) charities2Items;
+  mapping (address => uint32[]) public assessors2Items; // public for TESTING
 
   // All the registered actors
-  mapping (address => GKActor) public actorList;
+  mapping (address => GKActor) actorList;
 
-  address public gksAdmin;
+  address gksAdmin;
 
   //==================================================
   // State variables for auction
@@ -77,10 +77,10 @@ contract GiveKindlySystem {
   uint32 public highestBid;
 
   // Bidders who lost can withdraw their bid
-  mapping(address => uint32) public pendingReturns;
+  mapping(address => uint32) pendingReturns;
 
   // Charities can withdraw proceeds of auctioned donations
-  mapping(address => uint32) public charityFunds;
+  mapping(address => uint32) charityFunds;
 
   // Set to true at the start of the auction and false at the end
   bool public auctionActive;
@@ -104,6 +104,7 @@ contract GiveKindlySystem {
   // Modifiers
   //==================================================
 
+  // TODO: Could use this for whitelist of charity & auction accounts
   modifier onlyAdmin {
     require(msg.sender == gksAdmin);
     _;
@@ -306,6 +307,10 @@ contract GiveKindlySystem {
       return true;
     }
 
+    function auctioneer_getMyBidderBalance() public view returns (uint32){
+      return pendingReturns[msg.sender];
+    }
+
     function auctioneer_charityWithdraw() public returns(bool){
       uint amount = uint(charityFunds[msg.sender]);
       if (amount > 0) {
@@ -317,5 +322,9 @@ contract GiveKindlySystem {
         }
       }
       return true;
+    }
+
+    function auctioneer_getMyCharityBalance() public view returns (uint32) {
+      return charityFunds[msg.sender];
     }
 }
