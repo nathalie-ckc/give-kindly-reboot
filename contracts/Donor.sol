@@ -40,7 +40,7 @@ contract Donor {
 
   function donate(address _charity, uint8 _itemType, string _description) public {
     // Currently we don't do anything with the return value
-    gks.logDonation(msg.sender, _charity, _itemType, _description);
+    gks.newDonation(msg.sender, _charity, _itemType, _description);
   }
 
   // TODO: Add function to query the donations for the calling donor

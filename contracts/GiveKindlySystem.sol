@@ -74,7 +74,7 @@ contract GiveKindlySystem {
   //==================================================
   uint32 public itemBeingAuctioned;
   address public highestBidder;
-  uint public highestBid;
+  uint32 public highestBid;
 
   // Bidders who lost can withdraw their bid
   mapping(address => uint32) public pendingReturns;
@@ -85,6 +85,20 @@ contract GiveKindlySystem {
   // Set to true at the start of the auction and false at the end
   bool public auctionActive;
 
+  //==================================================
+  // Events
+  //==================================================
+  // GiveKindlySystem contract
+  event LogRegistrationOfActor(address indexed _actorAcct, uint8 indexed _role, string _name, string _emailAddr, string _physicalAddr);
+  event LogNewDonation(address indexed _donor, address indexed _charity, uint8 _itemType, string _description, uint32 indexed _itemID);
+  event LogAssignmentOfAssessor(uint32 indexed _itemID, address indexed _charity, address indexed _assessor);
+  event LogItemUpForAuction(uint32 indexed _itemID, address indexed _assessor);
+  event LogAuctionCompleted(uint32 indexed _itemID, address indexed _assessor, uint32 indexed _value);
+
+  // Auctioneer contract, if it were a separate contract
+  event AuctionEnded(uint32 indexed itemBeingAuctioned, address indexed charity, address indexed highestBidder, uint32 highestBid);
+  event NotifyBiddersNewAuction(uint32 indexed _itemID, address indexed charity, uint8 indexed itemType, string description);
+  event BidAccepted(uint32 indexed itemBeingAuctioned, address indexed highestBidder, uint32 highestBid);
 
   //==================================================
   // Modifiers
@@ -121,16 +135,24 @@ contract GiveKindlySystem {
   function getValueForItem(uint32 _itemID) public view returns (uint32) {
     return donationItemList[_itemID].assessedValue;
   }
-  // TODO: Add getter functions that return the whole array of donors, charities & assessors to items
+
+  function getTypeForItem(uint32 _itemID) public view returns (uint8) {
+    return donationItemList[_itemID].itemType;
+  }
+
+  function getDescrForItem(uint32 _itemID) public view returns (string) {
+    return donationItemList[_itemID].description;
+  }
 
   function registerActor(address _actorAcct, uint8 _role, string _name, string _email, string _physAddr) public {
     require(_actorAcct != 0x0);
     require(_role < numActorRoles);
     actorList[_actorAcct] = GKActor(_actorAcct, _role, true, _name, _email, _physAddr);
     numActorsRegistered++;
+    emit LogRegistrationOfActor(_actorAcct, _role, _name, _email, _physAddr);
   }
 
-  function logDonation(address _donor, address _charity, uint8 _itemType, string _descr) public returns (uint32) {
+  function newDonation(address _donor, address _charity, uint8 _itemType, string _descr) public returns (uint32) {
     require(actorList[_donor].isRegistered);
     require(actorList[_charity].isRegistered);
     require(_itemType < numItemTypes);
@@ -138,8 +160,8 @@ contract GiveKindlySystem {
     donationItemList.push(DonationItem(_donor, _charity, 0, 0, uint8(ItemState.AssignedToCharity), _itemType, _descr));
     donors2Items[_donor].push(donationID);
     charities2Items[_charity].push(donationID);
+    emit LogNewDonation(_donor, _charity, _itemType, _descr, donationID);
     donationID++;
-    // TODO: emit event to notify the charity and tell it the itemID
     return retval;
   }
 
@@ -151,6 +173,7 @@ contract GiveKindlySystem {
     donationItemList[_itemID].assessor = _assessor;
     donationItemList[_itemID].itemState = uint8(ItemState.AssignedToAssessor);
     assessors2Items[_assessor].push(_itemID);
+    emit LogAssignmentOfAssessor(_itemID, _charity, _assessor);
   }
 
   function itemUpForAuction(uint32 _itemID, address _assessor) public returns (bool){
@@ -158,17 +181,19 @@ contract GiveKindlySystem {
     require(actorList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.ListedForAuction);
+    emit LogItemUpForAuction(_itemID, _assessor);
     return true;
   }
 
   // Bidder doesn't need to be registered with GiveKindlySystem because they aren't relevant to taxes
   // TODO: Bidder would be registered with the Auctioneer
-  function logCompletedAuction(uint32 _itemID, address _assessor, uint32 _value) public {
+  function auctionCompleted(uint32 _itemID, address _assessor, uint32 _value) public {
     require(_itemID < donationID);
     require(actorList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.Sold);
     donationItemList[_itemID].assessedValue = _value;
+    emit LogAuctionCompleted(_itemID, _assessor, _value);
   }
 
 
@@ -183,11 +208,8 @@ contract GiveKindlySystem {
 
   function donor_donate(address _charity, uint8 _itemType, string _description) public {
     // Currently we don't do anything with the return value
-    logDonation(msg.sender, _charity, _itemType, _description);
+    newDonation(msg.sender, _charity, _itemType, _description);
   }
-
-  // TODO: Add function to query the donations for the calling donor
-
 
 
   //==================================================
@@ -204,8 +226,6 @@ contract GiveKindlySystem {
     assignAssessor(_itemID, msg.sender, _assessor);
   }
 
-  // TODO: Add function to query the donations for the calling charity
-
 
   //==================================================
   // These functions go into CRA contract later.
@@ -217,8 +237,6 @@ contract GiveKindlySystem {
   function cra_registerCRA(string _name, string _email, string _physAddr) public {
     registerActor(msg.sender, uint8(GiveKindlySystem.ActorRole.CRA), _name, _email, _physAddr);
   }
-
-  // TODO: Add functions to query anything CRA would be interested in
 
 
     //==================================================
@@ -234,21 +252,27 @@ contract GiveKindlySystem {
 
     // HACK: Since ganache doesn't let me call functions in other contracts,
     // only have 1 item up for auction at a time
-    // TODO: Deploy an auction contract for each item? Factory pattern?
+    // TODO: When separate contracts, deploy an auction contract for each item? Factory pattern?
     function auctioneer_auctionItem(uint32 _itemID) public {
+      address charity;
+      uint8 itemType;
+      string memory description;
       itemUpForAuction(_itemID, msg.sender);
       itemBeingAuctioned = _itemID;
+      charity = getCharityForItem(_itemID);
+      itemType = getTypeForItem(_itemID);
+      description = getDescrForItem(_itemID);
       auctionActive = true;
-      // TODO: Emit event about the item being auctioned
+      emit NotifyBiddersNewAuction(_itemID, charity, itemType, description);
     }
 
     function auctioneer_endAuction() public {
       // TODO: Put checks on auctioneer before de-activating the auction
+      address charity = getCharityForItem(itemBeingAuctioned);
       auctionActive = false;
-      logCompletedAuction(itemBeingAuctioned, msg.sender, uint32(highestBid));
-      charityFunds[getCharityForItem(itemBeingAuctioned)] = uint32(highestBid);
-      // TODO: Emit event to notify charity that their item was sold
-      // emit AuctionEnded(highestBidder, highestBid);
+      auctionCompleted(itemBeingAuctioned, msg.sender, highestBid);
+      charityFunds[charity] = highestBid;
+      emit AuctionEnded(itemBeingAuctioned, charity, highestBidder, highestBid);
     }
 
     function auctioneer_newBid() public payable returns (bool){
@@ -257,11 +281,11 @@ contract GiveKindlySystem {
         return false;
       }
       if (highestBid != 0) {
-        pendingReturns[highestBidder] = uint32(highestBid);
+        pendingReturns[highestBidder] = highestBid;
       }
       highestBidder = msg.sender;
       highestBid = uint32(msg.value);
-      // TODO: Emit event that bid was accepted
+      emit BidAccepted(itemBeingAuctioned, highestBidder, highestBid);
       return true;
     }
 
@@ -291,7 +315,4 @@ contract GiveKindlySystem {
       }
       return true;
     }
-
-
-    // TODO: Add function to query the donations for the calling auctioneer
 }
