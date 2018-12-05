@@ -187,13 +187,14 @@ contract GiveKindlySystem {
 
   // Bidder doesn't need to be registered with GiveKindlySystem because they aren't relevant to taxes
   // TODO: Bidder would be registered with the Auctioneer
-  function auctionCompleted(uint32 _itemID, address _assessor, uint32 _value) public {
+  function auctionCompleted(uint32 _itemID, address _assessor, uint32 _value) public returns (bool){
     require(_itemID < donationID);
     require(actorList[_assessor].isRegistered);
     require(donationItemList[_itemID].assessor == _assessor);
     donationItemList[_itemID].itemState = uint8(ItemState.Sold);
     donationItemList[_itemID].assessedValue = _value;
     emit LogAuctionCompleted(_itemID, _assessor, _value);
+    return true;
   }
 
 
@@ -267,12 +268,14 @@ contract GiveKindlySystem {
     }
 
     function auctioneer_endAuction() public {
-      // TODO: Put checks on auctioneer before de-activating the auction
       address charity = getCharityForItem(itemBeingAuctioned);
       auctionActive = false;
-      auctionCompleted(itemBeingAuctioned, msg.sender, highestBid);
-      charityFunds[charity] = highestBid;
-      emit AuctionEnded(itemBeingAuctioned, charity, highestBidder, highestBid);
+      if(auctionCompleted(itemBeingAuctioned, msg.sender, highestBid)) {
+        charityFunds[charity] = highestBid;
+        emit AuctionEnded(itemBeingAuctioned, charity, highestBidder, highestBid);
+      } else {  // checks failed on GKS side, so it wasn't OK to end the auction
+        auctionActive = true;
+      }
     }
 
     function auctioneer_newBid() public payable returns (bool){
