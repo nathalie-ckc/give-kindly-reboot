@@ -54,6 +54,20 @@ contract('GiveKindlySystem', function(accounts) {
     await gks.auctioneer_endAuction({from: canauction});
     const val = await gks.getValueForItem(1).then(result => result.toNumber());
     assert.equal(val, 50000000, "Item 1 was NOT successfully sold in auction");
+
+    const charity_b4 = await gks.auctioneer_getMyCharityBalance({from: bigsisters}).then(
+      result => result.toNumber());
+    await gks.auctioneer_charityWithdraw({from:bigsisters});
+    const charity_after = await gks.auctioneer_getMyCharityBalance({from: bigsisters}).then(
+      result => result.toNumber());
+    assert.equal((charity_b4 - charity_after), 50000000, "Charity failed to withdraw funds");
+
+    const b1_b4 = await gks.auctioneer_getMyBidderBalance({from: bidder1}).then(
+      result => result.toNumber());
+    await gks.auctioneer_returnLosingBid({from:bidder1});
+    const b1_after = await gks.auctioneer_getMyBidderBalance({from: bidder1}).then(
+      result => result.toNumber());
+    assert.equal((b1_b4 - b1_after), 10000000, "Bidder1 failed to withdraw funds");
   });
   /*
 
